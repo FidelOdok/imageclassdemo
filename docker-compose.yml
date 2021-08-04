@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    # command: python app.py
+    # ports:
+    #   $PORT:$PORT
+      # - "5000:5000"
+    volumes:
+      - .:/python-flask
+    environment:
+      FLASK_ENV: development

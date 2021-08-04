@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block content %}
+<!-- Anything here will be pulled from layout.html -->
+
+  <!-- <center><h2>CypherCrescent HSE image classification Playgroud - drag and drop demo</h2></center> -->
+    <div id="modules">
+      <center><h2 class= "demo-page" >Drill-bit Demo</h2></center> 
+    {{ dropzone.load_css() }}
+    {{ dropzone.style('border: 2px dashed #5CADE6; margin: 10%; min-height: 400px;') }}
+
+    {{ dropzone.create(action='drillBitDemo') }}
+    {{ dropzone.load_js() }}
+    {{ dropzone.config() }}
+  </div>
+  
+
+
+  {% endblock %}
+
+  
