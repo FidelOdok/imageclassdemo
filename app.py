@@ -1,7 +1,11 @@
+import pyrebase
 import os
-from flask import Flask, render_template,request, url_for, jsonify
+from flask import Flask, render_template,request, url_for, jsonify, redirect, session, g, url_for
+# from flask_session import Session
 from flask_dropzone import Dropzone
 from fastai.vision.all import *
+
+
 
 import pathlib
 from io import BytesIO
@@ -11,11 +15,31 @@ import PIL
 
 import numpy as np
 
+config = {
+    "apiKey": "AIzaSyBVVQ2OHuNlqR0jh2iegHnw8pqYZqFyJhc",
+    "authDomain": "mlimageclassdemo.firebaseapp.com",
+    "databaseURL": "",
+    "projectId": "mlimageclassdemo",
+    "storageBucket": "mlimageclassdemo.appspot.com",
+    "messagingSenderId": "113589091191",
+    "appId": "1:113589091191:web:ed4f319cfc6ac90b417f72"
+}
 
 
 
 app = Flask(__name__)
-app.secret_key = 'key'
+
+app.secret_key = os.urandom(24)
+firebase = pyrebase.initialize_app(config)
+auth = firebase.auth()
+db = firebase.database()
+
+# app.secret_key = 'key'
+# app.config["SESSION_PERMANENT"] = False
+# app.config["SESSION_TYPE"] = "filesystem"
+# Session(app)
+
+user_loggedin = False
 
 plt = platform.system()
 if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
@@ -78,11 +102,57 @@ def infer_image():
     prediction, prediction_idx, probability = predict_image(img, 'hse')
     return jsonify(prediction, str(probability[prediction_idx]))    
 
-
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/')
+@app.route('/index', methods=['GET', 'POST'])
 def upload():
-            
-    return render_template('index.html')
+    global user_loggedin
+    user_loggedin = False
+    
+    try:
+        print(session['usr'])
+        return redirect(url_for('home'))
+    except KeyError:
+        if request.method == "POST":
+            email = request.form['name']
+            password = request.form['password']
+            try:
+                user = auth.sign_in_with_email_and_password(email, password)
+                user = auth.refresh(user['refreshToken'])
+                user_id = user['idToken']
+                session['usr'] = user_id
+                return redirect(url_for('home'))
+            except:
+                unsuccessful = 'Login Failed, Please check your credentials'
+                message = "Incorrect Password!"
+                return render_template('index.html', umessage=unsuccessful)
+        return render_template('index.html', umessage='')    
+
+@app.route('/create_account', methods=['GET', 'POST'])
+def create_account():
+    if (request.method == 'POST'):
+            email = request.form['name']
+            password = request.form['password']
+            auth.create_user_with_email_and_password(email, password)
+            return render_template('index.html')
+    return render_template('create_account.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if (request.method == 'POST'):
+            email = request.form['name']
+            auth.send_password_reset_email(email)
+            return render_template('index.html')
+    return render_template('forgot_password.html')
+
+@app.route('/home', methods=['GET', 'POST'])
+def home():
+    try:
+        print(session['usr'])
+        return render_template("home.html")
+    except KeyError:
+        return redirect(url_for('upload'))
+    # return render_template('home.html')
+    
 
 @app.route('/analyse_image', methods=['POST', 'GET'])
 def analyseImage():
@@ -113,7 +183,7 @@ def analyseImage():
 
 @app.route('/layout')    
 def layout():
-    return render_template('layout.html')
+    return render_template('layout.html', loggedin=logdetls)
 
 @app.route('/hse-demo', methods=['POST', 'GET'])    
 def hseDemo():
@@ -126,43 +196,58 @@ def hseDemo():
     global pred
     global predidx
     global prob
-    
+    global user_loggedin
+
     md_type = 'hse'
     file = None
-    if request.method == 'POST':
 
-        dir = os.path.join(app.config['UPLOADED_PATH'],"") 
-        for f in os.listdir(dir):
-            os.remove(os.path.join(dir, f))
+    try:
+        print(session['usr'])
+        if request.method == 'POST':
 
-        f = request.files.get('file')
-        file = f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
-        print("The file .......:::::")
-        print(type(f.read()))
+            # if user_loggedin != True:
+            #     return render_template('index.html')
 
-        print("The file path....")
-        print(dir)
+            dir = os.path.join(app.config['UPLOADED_PATH'],"") 
+            for f in os.listdir(dir):
+                os.remove(os.path.join(dir, f))
 
-        print("The file path2....")
-        print(file)
+            f = request.files.get('file')
+            file = f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
+            print("The file .......:::::")
+            print(type(f.read()))
 
+            print("The file path....")
+            print(dir)
+
+            print("The file path2....")
+            print(file)
+
+            
+            # img_bytes = f.read()
+            img = prepare_image(f)
+            prediction, prediction_idx, probability = predict_image(img, md_type)
+
+            pred = prediction
+            predidx = prediction_idx.tolist()
+            prob = probability.tolist()
+
+            print("The Predictions .......:::::")
+            print(pred,  predidx, prob)
         
-        # img_bytes = f.read()
-        img = prepare_image(f)
-        prediction, prediction_idx, probability = predict_image(img, md_type)
+            data = probability.tolist()         
+            labels = ['boot', 'gloves', 'hard hat', 'road cones', 'vest', 'weld mask']
 
-        pred = prediction
-        predidx = prediction_idx.tolist()
-        prob = probability.tolist()
+            filename = f.filename
+        
+        return render_template('hse-demo.html', title="(HSE)")    
+        # return render_template("hse-demo.html")
+    except KeyError:
+        return redirect(url_for('upload'))
 
-        print("The Predictions .......:::::")
-        print(pred,  predidx, prob)
-       
-        data = probability.tolist()         
-        labels = ['boot', 'gloves', 'hard hat', 'road cones', 'vest', 'weld mask']
-
-        filename = f.filename
-    return render_template('hse-demo.html', title="(HSE)")    
+    # print('yum yum.............*****************')
+    # print(user_loggedin)
+    
 
 @app.route('/drill-bit-demo', methods=['POST', 'GET'])   
 def drillBitDemo():
@@ -175,44 +260,57 @@ def drillBitDemo():
     global pred
     global predidx
     global prob
+    global user_loggedin
 
     md_type = 'drill'
     
     file = None
-    if request.method == 'POST':
+    try:
+        print(session['usr'])
+        if request.method == 'POST':
 
-        dir = os.path.join(app.config['UPLOADED_PATH'],"") 
-        for f in os.listdir(dir):
-            os.remove(os.path.join(dir, f))
+            if user_loggedin != True:
+                return render_template('index.html')
 
-        f = request.files.get('file')
-        file = f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
-        print("The file .......:::::")
-        print(type(f.read()))
+            dir = os.path.join(app.config['UPLOADED_PATH'],"") 
+            for f in os.listdir(dir):
+                os.remove(os.path.join(dir, f))
 
-        print("The file path....")
-        print(dir)
+            f = request.files.get('file')
+            file = f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
+            print("The file .......:::::")
+            print(type(f.read()))
 
-        print("The file path2....")
-        print(file)
+            print("The file path....")
+            print(dir)
 
+            print("The file path2....")
+            print(file)
+
+            
+            # img_bytes = f.read()
+            img = prepare_image(f)
+            prediction, prediction_idx, probability = predict_image(img, md_type)
+
+            pred = prediction
+            predidx = prediction_idx.tolist()
+            prob = probability.tolist()
+
+            print("The Predictions .......:::::")
+            print(pred,  predidx, prob)
         
-        # img_bytes = f.read()
-        img = prepare_image(f)
-        prediction, prediction_idx, probability = predict_image(img, md_type)
+            data = probability.tolist()         
+            labels = ['Drilling bit', 'Not drilling bit']
 
-        pred = prediction
-        predidx = prediction_idx.tolist()
-        prob = probability.tolist()
+            filename = f.filename
+        
+        return render_template('drill-bit-demo.html', title="(Drill-bit)")    
+    except KeyError:
+        return redirect(url_for('upload'))    
 
-        print("The Predictions .......:::::")
-        print(pred,  predidx, prob)
-       
-        data = probability.tolist()         
-        labels = ['Drilling bit', 'Not drilling bit']
-
-        filename = f.filename
-    return render_template('drill-bit-demo.html', title="(Drill-bit)")        
+# if __name__ == '__main__':
+#     app.debug = True
+#     app.run()
 
 if  __name__ == '__main__':
     app.run(host="0.0.0.0")

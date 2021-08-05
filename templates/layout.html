@@ -6,9 +6,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet"
+    <!-- <link rel="stylesheet"
         href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"> -->
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" 
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
@@ -36,6 +42,13 @@
                             <div class="navbar-nav ml-auto mr-3">
                                 <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('hseDemo') }}">HSE Demo</a>
                                 <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('drillBitDemo') }}">Drill Bit Demo</a>
+                                <!-- {% if loggedin == 'loggedin' %}
+                                    <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('hseDemo') }}">HSE Demo</a>
+                                    <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('drillBitDemo') }}">Drill Bit Demo</a>
+                                {% else %}
+                                    <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('upload') }}">HSE Demo</a>
+                                    <a style="color: #343a40; font-weight: bold;" class="nav-item nav-link" href="{{ url_for('upload') }}">Drill Bit Demo</a>
+                                {% endif %} -->
                             </div>
                         </div>
                     </nav>
